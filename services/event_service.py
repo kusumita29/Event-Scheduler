@@ -132,6 +132,10 @@ class EventService:
                 response = requests.get(url)
             elif method == "POST":
                 response = requests.post(url, json=payload)
+            elif method == "PUT":
+                response = requests.put(url, json=payload)
+            elif method == "DELETE":
+                response = requests.delete(url)
             else:
                 return {"error": "Unsupported HTTP method"}, 400  # Bad Request
 
