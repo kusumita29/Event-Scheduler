@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy.sql import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.database import get_db
 
 from routes import events_router, logs_router, users_router
 
@@ -12,3 +15,9 @@ app.include_router(users_router.router)
 @app.get("/health")
 def health_check():
     return {"status": "OK", "message": "Service is running!"}
+
+@app.get("/")
+async def root(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(text("SELECT 'Hello, PostgreSQL from FastAPI!'"))
+    message = result.scalar()
+    return {"message": message}
