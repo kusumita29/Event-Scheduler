@@ -1,7 +1,11 @@
-fastapi
-uvicorn
-pydantic
+fastapi==0.111.0
+uvicorn==0.29.0
+pydantic==2.7.1
+requests==2.31.0
+passlib==1.7.4
+bcrypt==4.1.2
+asyncpg==0.29.0
+SQLAlchemy==2.0.30
+alembic==1.13.1
+psycopg2==2.9.9
 python-dotenv
-requests
-passlib
-bcrypt
