@@ -14,9 +14,9 @@ from services.log_service import LogService
 
 class EventService:
 
-    # Create an event
     @staticmethod
     async def create_event(event: EventCreate, db: AsyncSession) -> EventResponse:
+        """ Create an event and stores it in the database. """
         new_event = Event(
             creator_id=event.creator_id,
             name=event.name,
@@ -31,29 +31,29 @@ class EventService:
         db.add(new_event)
         await db.commit()
         await db.refresh(new_event)
-        return EventResponse.from_orm(new_event)
+        return EventResponse.model_validate(new_event)
 
 
-    # Fetches all the events
     @staticmethod
     async def get_all_events(db: AsyncSession) -> List[EventResponse]:
+        """ Get all events in the database. """
         result = await db.execute(select(Event))
         events = result.scalars().all()
-        return [EventResponse.from_orm(event) for event in events]
+        return [EventResponse.model_validate(event) for event in events]
         
 
-    # Fetches a single event by id
     @staticmethod
     async def get_event(event_id: int, db: AsyncSession) -> EventResponse:
+        """ Fetches an event by id """
         event = await db.get(Event, event_id)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
-        return EventResponse.from_orm(event)
+        return EventResponse.model_validate(event)
 
 
-    # Update an event by id
     @staticmethod
     async def update_event(event_id: int, updated_event: EventCreate, db: AsyncSession) -> EventResponse:
+        """ Update an event by id """
         event = await db.get(Event, event_id)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
@@ -68,12 +68,12 @@ class EventService:
 
         await db.commit()
         await db.refresh(event)
-        return EventResponse.from_orm(event)
+        return EventResponse.model_validate(event)
 
 
-    # Delete an event by id
     @staticmethod
     async def delete_event(event_id: int, db: AsyncSession) -> dict[str, str]:
+        """ Delete an event by id """
         event = await db.get(Event, event_id)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
