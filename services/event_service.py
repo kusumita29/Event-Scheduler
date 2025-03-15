@@ -1,14 +1,14 @@
-import requests
+import httpx
 from datetime import datetime
 
 from sqlalchemy import select
 from db.schemas.event_schema import EventCreate, EventResponse
-from db.enums import EventType, MethodType
+from db.enums import MethodType
 from typing import List
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models.events_model import Event
+from db.models.event_model import Event
 from db.schemas.log_schema import LogResponse
 from services.log_service import LogService
 
@@ -90,11 +90,11 @@ class EventService:
 
         Args:
             event_id (int): The ID of the event to trigger.
+            db (AsyncSession): The database session.
 
         Returns:
-            log_entry: Contains details of the API response of the event triggered.
+            LogResponse: Contains details of the API response of the event triggered.
         """
-
         # Retrieving the event details
         event = await db.get(Event, event_id)
         if not event:
@@ -107,27 +107,28 @@ class EventService:
         response_text = "Request failed"
         response_status = 500  # Default to server error
 
-        try:
-            if method == MethodType.GET:
-                response = requests.get(url)
-            elif method == MethodType.POST:
-                response = requests.post(url, json=payload)
-            elif method == MethodType.PUT:
-                response = requests.put(url, json=payload)
-            elif method == MethodType.DELETE:
-                response = requests.delete(url)
-            else:
-                raise HTTPException(status_code=400, detail="Unsupported method")
+        async with httpx.AsyncClient() as client:
+            try:
+                if method == MethodType.GET:
+                    response = await client.get(url)
+                elif method == MethodType.POST:
+                    response = await client.post(url, json=payload)
+                elif method == MethodType.PUT:
+                    response = await client.put(url, json=payload)
+                elif method == MethodType.DELETE:
+                    response = await client.delete(url)
+                else:
+                    raise HTTPException(status_code=400, detail="Unsupported method")
 
-            # Update response details on success
-            response_text = response.text
-            response_status = response.status_code
+                # Update response details on success
+                response_text = response.text
+                response_status = response.status_code
 
-        # Handling request failure (network issue, invalid URL, etc.)
-        except requests.exceptions.RequestException as e:
-            print(f"Exception occurred: {e}")
-            response_text = str(e)
+            # Handling request failure (network issue, invalid URL, etc.)
+            except httpx.RequestError as e:
+                print(f"Exception occurred: {e}")
+                response_text = str(e)
 
         # Logging the response
-        log_entry = LogService.create_log(event_id, response_text, response_status)
+        log_entry = await LogService.create_log(event_id, response_text, response_status, db)
         return log_entry

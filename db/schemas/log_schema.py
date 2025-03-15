@@ -2,17 +2,15 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from db.enums import LogStatus
+from db.enums import LogStatus    
 
-class LogCreate(BaseModel):
+# Response includes system-generated fields (id, timestamp)
+class LogResponse(BaseModel):
+    id: int  # System-generated ID
     event_id: int  # Foreign key (must be provided)
     response: str
     response_status_code: int
-    status: LogStatus
-
-# Response includes system-generated fields (id, timestamp)
-class LogResponse(LogCreate):
-    id: int  # System-generated ID
     timestamp: datetime  # Auto-generated
+    status: LogStatus
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
