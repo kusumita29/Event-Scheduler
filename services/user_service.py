@@ -8,6 +8,7 @@ from db.schemas.user_schema import UserCreate, UserResponse
 from passlib.context import CryptContext
 
 from db.models.user_model import User
+from db.enums import UserRole
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -23,6 +24,7 @@ class UserService:
             name=user.name,
             email=user.email,
             password=hashed_password,
+            role=UserRole.USER,
         )
         db.add(new_user)
         await db.commit()

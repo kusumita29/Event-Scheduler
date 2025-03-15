@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 from db.schemas.event_schema import EventCreate, EventResponse
-from db.enums import MethodType
+from db.enums import EventType, MethodType
 from typing import List
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,8 @@ class EventService:
             method_type=event.method_type,
             payload=event.payload,
             is_test=event.is_test,
+            interval_minutes=event.interval_minutes if event.event_type == EventType.INTERVAL else None,
+            fixed_time=event.fixed_time if event.event_type == EventType.FIXED_TIME else None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
@@ -64,6 +66,8 @@ class EventService:
         event.method_type = updated_event.method_type
         event.payload = updated_event.payload
         event.is_test = updated_event.is_test
+        event.interval_minutes = updated_event.interval_minutes if updated_event.event_type == EventType.INTERVAL else None
+        event.fixed_time = updated_event.fixed_time if updated_event.event_type == EventType.FIXED_TIME else None
         event.updated_at = datetime.utcnow()
 
         await db.commit()

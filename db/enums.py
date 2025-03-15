@@ -1,5 +1,9 @@
 from enum import Enum
 
+class UserRole(str, Enum):
+    USER = "USER"
+    ADMIN = "ADMIN"
+    
 class EventType(str, Enum):
     INTERVAL = "INTERVAL"  # Recurring events at a set interval
     FIXED_TIME = "FIXED_TIME"  # Events scheduled for a specific time
