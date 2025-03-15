@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, Enum, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from db.database import Base
 from db.enums import EventType, MethodType
@@ -19,3 +20,6 @@ class Event(Base):
 
     created_at = Column(DateTime, server_default=func.now())  # Auto-generated timestamp
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())  # Updates on modification
+
+    # Relationship to Log
+    logs = relationship("Log", back_populates="event")
