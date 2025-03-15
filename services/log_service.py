@@ -26,10 +26,11 @@ class LogService:
             db.add(new_log)
             await db.commit()
             await db.refresh(new_log)
-            return LogResponse.from_orm(new_log)
+            return LogResponse.model_validate(new_log)
         except Exception as e:
             await db.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to store log: {str(e)}")
+    
     
     @staticmethod
     async def get_all_logs(db: AsyncSession) -> list[LogResponse]:

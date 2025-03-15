@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Enum, Text, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Enum, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -10,7 +10,7 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)  # Auto-incremented primary key
-    creator_id = Column(Integer, nullable=False)  # Foreign key to users
+    creator_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)  # Foreign key to users
     name = Column(String, nullable=False)
     event_type = Column(Enum(EventType), nullable=False)  # Uses predefined Enum
     destination = Column(String, nullable=False)
@@ -21,5 +21,6 @@ class Event(Base):
     created_at = Column(DateTime, server_default=func.now())  # Auto-generated timestamp
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())  # Updates on modification
 
-    # Relationship to Log
+    # Relationship with Logs and Users table
     logs = relationship("Log", back_populates="event")
+    creator = relationship("User", back_populates="events")
