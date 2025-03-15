@@ -1,59 +1,23 @@
 import requests
 from datetime import datetime
+
+from sqlalchemy import select
 from db.schemas.event_schema import EventCreate, EventResponse
 from db.enums import EventType, MethodType
 from typing import List
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from db.models.events_model import Event
+from db.schemas.log_schema import LogResponse
 from services.log_service import LogService
 
 class EventService:
-    # Initial hardcoded list of events
-    events_db = [
-        EventResponse(
-            id=1,
-            creator_id=101,
-            name="System Backup",
-            event_type=EventType.FIXED_TIME,
-            destination="https://backup.example.com",
-            method_type=MethodType.POST,
-            payload='{"backup": "full"}',
-            is_test=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        ),
-        EventResponse(
-            id=2,
-            creator_id=102,
-            name="Monthly Report",
-            event_type=EventType.INTERVAL,
-            destination="https://reports.example.com",
-            method_type=MethodType.GET,
-            payload=None,
-            is_test=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        ),
-        EventResponse(
-            id=3,
-            creator_id=103,
-            name="User Signup Notification",
-            event_type=EventType.ONE_TIME,
-            destination="https://notify.example.com",
-            method_type=MethodType.POST,
-            payload='{"user_id": 1234, "email": "user@example.com"}',
-            is_test=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
-        )
-    ]
 
-    event_id_counter = 4  # Start ID counter from 4
-
-    @classmethod
-    def create_event(cls, event: EventCreate) -> EventResponse:
-        new_event = EventResponse(
-            id=cls.event_id_counter,
+    # Create an event
+    @staticmethod
+    async def create_event(event: EventCreate, db: AsyncSession) -> EventResponse:
+        new_event = Event(
             creator_id=event.creator_id,
             name=event.name,
             event_type=event.event_type,
@@ -64,45 +28,63 @@ class EventService:
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-        cls.events_db.append(new_event)
-        cls.event_id_counter += 1
-        return new_event
+        db.add(new_event)
+        await db.commit()
+        await db.refresh(new_event)
+        return EventResponse.from_orm(new_event)
 
-    @classmethod
-    def get_all_events(cls) -> List[EventResponse]:
-        return cls.events_db
 
-    @classmethod
-    def get_event(cls, id: int) -> EventResponse:
-        for event in cls.events_db:
-            if event.id == id:
-                return event
-        raise HTTPException(status_code=404, detail="Event not found")
+    # Fetches all the events
+    @staticmethod
+    async def get_all_events(db: AsyncSession) -> List[EventResponse]:
+        result = await db.execute(select(Event))
+        events = result.scalars().all()
+        return [EventResponse.from_orm(event) for event in events]
+        
 
-    @classmethod
-    def update_event(cls, id: int, updated_event: EventCreate) -> EventResponse:
-        for event in cls.events_db:
-            if event.id == id:
-                event.name = updated_event.name
-                event.event_type = updated_event.event_type
-                event.destination = updated_event.destination
-                event.method_type = updated_event.method_type
-                event.payload = updated_event.payload
-                event.is_test = updated_event.is_test
-                event.updated_at = datetime.utcnow()
-                return event
-        raise HTTPException(status_code=404, detail="Event not found")
+    # Fetches a single event by id
+    @staticmethod
+    async def get_event(event_id: int, db: AsyncSession) -> EventResponse:
+        event = await db.get(Event, event_id)
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        return EventResponse.from_orm(event)
 
-    @classmethod
-    def delete_event(cls, id: int) -> dict:
-        for event in cls.events_db:
-            if event.id == id:
-                cls.events_db.remove(event)
-                return {"message": f"Event {id} deleted successfully"}
-        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Update an event by id
+    @staticmethod
+    async def update_event(event_id: int, updated_event: EventCreate, db: AsyncSession) -> EventResponse:
+        event = await db.get(Event, event_id)
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        event.name = updated_event.name
+        event.event_type = updated_event.event_type
+        event.destination = updated_event.destination
+        event.method_type = updated_event.method_type
+        event.payload = updated_event.payload
+        event.is_test = updated_event.is_test
+        event.updated_at = datetime.utcnow()
+
+        await db.commit()
+        await db.refresh(event)
+        return EventResponse.from_orm(event)
+
+
+    # Delete an event by id
+    @staticmethod
+    async def delete_event(event_id: int, db: AsyncSession) -> dict[str, str]:
+        event = await db.get(Event, event_id)
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        await db.delete(event)
+        await db.commit()
+        return {"message": f"Event {event_id} deleted successfully"}
     
-    @classmethod
-    def trigger_event(cls, event_id: int):
+
+    @staticmethod
+    async def trigger_event(event_id: int, db: AsyncSession) -> LogResponse:
         """
         Triggers an event by making an API request to its destination and logs the response.
 
@@ -113,44 +95,39 @@ class EventService:
             log_entry: Contains details of the API response of the event triggered.
         """
 
-        # Retrieve the event details
-        event = cls.get_event(event_id)
+        # Retrieving the event details
+        event = await db.get(Event, event_id)
         if not event:
-            return {"error": "Event not found"}, 404
+            raise HTTPException(status_code=404, detail="Event not found")
 
-        method = event.method_type  # HTTP method 
-        url = event.destination  # Target URL
-        payload = event.payload  # Request payload (if applicable)
+        method = event.method_type
+        url = event.destination
+        payload = event.payload
 
-        # Default response values in case of failure
         response_text = "Request failed"
-        response_status = 500  # Internal Server Error
+        response_status = 500  # Default to server error
 
         try:
-            # Make an HTTP request based on the method type
-            if method == "GET":
+            if method == MethodType.GET:
                 response = requests.get(url)
-            elif method == "POST":
+            elif method == MethodType.POST:
                 response = requests.post(url, json=payload)
-            elif method == "PUT":
+            elif method == MethodType.PUT:
                 response = requests.put(url, json=payload)
-            elif method == "DELETE":
+            elif method == MethodType.DELETE:
                 response = requests.delete(url)
             else:
-                return {"error": "Unsupported HTTP method"}, 400  # Bad Request
+                raise HTTPException(status_code=400, detail="Unsupported method")
 
             # Update response details on success
             response_text = response.text
             response_status = response.status_code
 
+        # Handling request failure (network issue, invalid URL, etc.)
         except requests.exceptions.RequestException as e:
-            # Handle request failure (network issue, invalid URL, etc.)
             print(f"Exception occurred: {e}")
             response_text = str(e)
 
-        # Log the request outcome (success or failure)
+        # Logging the response
         log_entry = LogService.create_log(event_id, response_text, response_status)
-
-        return log_entry  # Return log entry with HTTP 200 (OK)
-
-        
+        return log_entry

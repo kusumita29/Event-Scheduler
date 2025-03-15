@@ -1,36 +1,39 @@
 from typing import List
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from db.database import get_db
 from services.event_service import EventService
 from db.schemas.event_schema import EventCreate, EventResponse
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/events", tags=["Events"])
 
 @router.post("/create", response_model=EventResponse)
-def create_event(event: EventCreate):
-    """Create a new event and add it to the database."""
-    return EventService.create_event(event)
+async def create_event(event: EventCreate, db: AsyncSession = Depends(get_db)):
+    """Create a new event."""
+    return await EventService.create_event(event, db)
 
 @router.get("/all", response_model=List[EventResponse])
-def get_all_events():
+async def get_all_events(db: AsyncSession = Depends(get_db)):
     """Fetch all events stored in the database."""
-    return EventService.get_all_events()
+    return await EventService.get_all_events(db)
 
 @router.get("/{id}", response_model=EventResponse)
-def get_event(id: int):
+async def get_event(id: int, db: AsyncSession = Depends(get_db)):
     """Fetch a specific event by ID."""
-    return EventService.get_event(id)
+    return await EventService.get_event(id, db)
 
 @router.put("/{id}", response_model=EventResponse)
-def update_event(id: int, updated_event: EventCreate):
+async def update_event(id: int, updated_event: EventCreate, db: AsyncSession = Depends(get_db)):
     """Update an existing event."""
-    return EventService.update_event(id, updated_event)
+    return await EventService.update_event(id, updated_event, db)
 
 @router.delete("/{id}")
-def delete_event(id: int):
+async def delete_event(id: int, db: AsyncSession = Depends(get_db)):
     """Delete an event by ID."""
-    return EventService.delete_event(id)
+    return await EventService.delete_event(id, db)
 
 @router.post("/trigger/{id}")
-def trigger_event(id: int):
+async def trigger_event(id: int, db: AsyncSession = Depends(get_db)):
     """Triggers an event and logs the response."""
-    return EventService.trigger_event(id)
+    return await EventService.trigger_event(id, db)

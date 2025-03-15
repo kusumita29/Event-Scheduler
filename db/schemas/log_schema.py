@@ -4,14 +4,14 @@ from pydantic import BaseModel, ConfigDict
 
 from db.enums import LogStatus
 
-class logCreate(BaseModel):
+class LogCreate(BaseModel):
     event_id: int  # Foreign key (must be provided)
     response: str
     response_status_code: int
     status: LogStatus
 
 # Response includes system-generated fields (id, timestamp)
-class logResponse(logCreate):
+class LogResponse(LogCreate):
     id: int  # System-generated ID
     timestamp: datetime  # Auto-generated
 
