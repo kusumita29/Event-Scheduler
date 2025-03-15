@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import FastAPI, Depends
 from sqlalchemy.sql import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +14,11 @@ app.include_router(users_router.router)
 
 # Health check endpoint
 @app.get("/health")
-def health_check():
+def health_check() -> dict[str, str]:
     return {"status": "OK", "message": "Service is running!"}
 
 @app.get("/")
-async def root(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(text("SELECT 'Hello, PostgreSQL from FastAPI!'"))
+async def root(db: AsyncSession = Depends(get_db)) -> dict[str, Any | None]:
+    result = await db.execute(text("SELECT 'Hello, Welcome to Event Scheduler!'"))
     message = result.scalar()
     return {"message": message}
