@@ -1,6 +1,6 @@
 from datetime import datetime
 from db.enums import LogStatus
-from db.schemas.log_schema import logResponse
+from db.schemas.log_schema import LogResponse
 
 class LogService:
     logs_db = []  # Static list for now
@@ -23,5 +23,5 @@ class LogService:
         return log_entry
     
     @classmethod
-    def get_all_logs(cls) -> list[logResponse]:
+    def get_all_logs(cls) -> list[LogResponse]:
         return cls.logs_db
