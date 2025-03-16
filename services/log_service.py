@@ -1,13 +1,13 @@
 from datetime import datetime
 
 from fastapi import HTTPException
+from sqlalchemy import func
 from db.enums import LogStatus
-from db.schemas.log_schema import LogResponse
+from db.schemas.log_schema import LogResponse, LogsWithCountResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime
-from db.models.log_model import Log  # Import the Log model
-from sqlalchemy.exc import SQLAlchemyError
+from db.models.log_model import Log
 
 class LogService:
 
@@ -39,3 +39,17 @@ class LogService:
         logs = result.scalars().all()
         return [LogResponse.model_validate(log) for log in logs]
 
+
+    @staticmethod
+    async def get_logs_with_count(event_id: int, db: AsyncSession) -> LogsWithCountResponse:
+        """Fetch logs for an event along with their count."""
+        
+        # Fetch logs for the given event_id
+        logs_result = await db.execute(select(Log).where(Log.event_id == event_id))
+        logs = logs_result.scalars().all()
+
+        return LogsWithCountResponse(
+            event_id=event_id,
+            logs_count=len(logs),
+            logs=[LogResponse.model_validate(log) for log in logs]  # Convert to schema
+        )
