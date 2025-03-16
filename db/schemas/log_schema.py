@@ -16,7 +16,7 @@ class LogResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
 
-class LogsWithCountResponse(BaseModel):
+class LogsFilterByEventResponse(BaseModel):
     event_id: int
     logs_count: int
     logs: List[LogResponse]

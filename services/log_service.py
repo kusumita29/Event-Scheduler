@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy import func
 from db.enums import LogStatus
-from db.schemas.log_schema import LogResponse, LogsWithCountResponse
+from db.schemas.log_schema import LogResponse, LogsFilterByEventResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime
@@ -41,14 +41,14 @@ class LogService:
 
 
     @staticmethod
-    async def get_logs_with_count(event_id: int, db: AsyncSession) -> LogsWithCountResponse:
+    async def get_logs_with_count(event_id: int, db: AsyncSession) -> LogsFilterByEventResponse:
         """Fetch logs for an event along with their count."""
         
         # Fetch logs for the given event_id
         logs_result = await db.execute(select(Log).where(Log.event_id == event_id))
         logs = logs_result.scalars().all()
 
-        return LogsWithCountResponse(
+        return LogsFilterByEventResponse(
             event_id=event_id,
             logs_count=len(logs),
             logs=[LogResponse.model_validate(log) for log in logs]  # Convert to schema

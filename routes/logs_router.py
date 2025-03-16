@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from db.database import get_db
 from services.log_service import LogService
-from db.schemas.log_schema import LogResponse, LogsWithCountResponse
+from db.schemas.log_schema import LogResponse, LogsFilterByEventResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/logs", tags=["Logs"])
@@ -13,8 +13,8 @@ async def get_all_logs(db: AsyncSession = Depends(get_db)) -> list[LogResponse]:
     return await LogService.get_all_logs(db)
 
 
-@router.get("/logs/event/{event_id}")
-async def get_logs_by_event(event_id: int, db: AsyncSession = Depends(get_db)) -> LogsWithCountResponse:
+@router.get("/filter/by/{event_id}")
+async def get_logs_by_event(event_id: int, db: AsyncSession = Depends(get_db)) -> LogsFilterByEventResponse:
     """ API to fetch logs along with their count """
     logs_data = await LogService.get_logs_with_count(event_id, db)
 
