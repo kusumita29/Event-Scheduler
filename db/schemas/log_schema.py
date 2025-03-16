@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,3 +15,11 @@ class LogResponse(BaseModel):
     status: LogStatus
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+class LogsFilterByEventResponse(BaseModel):
+    event_id: int
+    logs_count: int
+    logs: List[LogResponse]
+
+    class Config:
+        from_attributes = True
