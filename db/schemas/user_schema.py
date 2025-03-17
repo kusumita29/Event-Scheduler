@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     email: str
     password: str  # Required for creation
 
+
 # Schema for returning user details (response payload).
 # Password is excluded for security
 class UserResponse(BaseModel):
@@ -17,3 +18,9 @@ class UserResponse(BaseModel):
     email: str 
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+
+# Schema for user login
+class UserLogin(BaseModel):
+    user_name: str
+    password: str

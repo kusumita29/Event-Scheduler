@@ -17,8 +17,6 @@ async def get_all_logs(db: AsyncSession = Depends(get_db)) -> list[LogResponse]:
 async def get_logs_by_event(event_id: int, db: AsyncSession = Depends(get_db)) -> LogsFilterByEventResponse:
     """ API to fetch logs along with their count """
     logs_data = await LogService.get_logs_with_count(event_id, db)
-
-    print ("kusumita", logs_data.model_dump)
     
     if logs_data.logs_count == 0:
         raise HTTPException(status_code=404, detail="No logs found for this event.")
