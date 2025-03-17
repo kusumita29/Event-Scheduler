@@ -5,20 +5,26 @@ from sqlalchemy import select
 from db.schemas.event_schema import EventCreate, EventResponse
 from db.enums import EventType, MethodType
 from typing import List
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models.event_model import Event
 from db.schemas.log_schema import LogResponse
+from db.models.user_model import User
 from services.log_service import LogService
 
 class EventService:
 
     @staticmethod
-    async def create_event(event: EventCreate, db: AsyncSession) -> EventResponse:
+    async def create_event(
+                event: EventCreate,
+                db: AsyncSession,
+                current_user: User,
+            ) -> EventResponse:
+        
         """ Create an event and stores it in the database. """
         new_event = Event(
-            creator_id=event.creator_id,
+            creator_id=current_user.id,
             name=event.name,
             event_type=event.event_type,
             destination=event.destination,
@@ -54,11 +60,19 @@ class EventService:
 
 
     @staticmethod
-    async def update_event(event_id: int, updated_event: EventCreate, db: AsyncSession) -> EventResponse:
+    async def update_event(
+            event_id: int, 
+            updated_event: EventCreate,
+            db: AsyncSession,
+            current_user: User,
+            ) -> EventResponse:
         """ Update an event by id """
         event = await db.get(Event, event_id)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
+        
+        if event.creator_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You are not authorized to update this event")
 
         event.name = updated_event.name
         event.event_type = updated_event.event_type
@@ -76,11 +90,19 @@ class EventService:
 
 
     @staticmethod
-    async def delete_event(event_id: int, db: AsyncSession) -> dict[str, str]:
+    async def delete_event(
+            event_id: int,
+            db: AsyncSession,
+            current_user: User,
+            ) -> dict[str, str]:
         """ Delete an event by id """
         event = await db.get(Event, event_id)
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
+        
+        if event.creator_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You are not authorized to delete this event")
+
 
         await db.delete(event)
         await db.commit()

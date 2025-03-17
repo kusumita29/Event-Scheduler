@@ -4,13 +4,15 @@ from sqlalchemy.sql import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 
-from routes import events_router, logs_router, users_router
+from routes import auth_router, events_router, logs_router, users_router
 
 app = FastAPI()
 
+app.include_router(auth_router.router)
+app.include_router(users_router.router)
 app.include_router(events_router.router)
 app.include_router(logs_router.router)
-app.include_router(users_router.router)
+
 
 # Health check endpoint
 @app.get("/health")

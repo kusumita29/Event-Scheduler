@@ -4,7 +4,6 @@ from datetime import datetime, time
 from typing import Optional
 
 class EventCreate(BaseModel):
-    creator_id: int  # Foreign key (must be provided)
     name: str
     event_type: EventType
     destination: str
@@ -32,6 +31,7 @@ class EventCreate(BaseModel):
 # Response includes system-generated fields (id, created_at, updated_at)
 class EventResponse(EventCreate):
     id: int
+    creator_id: int
     created_at: datetime
     updated_at: datetime
 
