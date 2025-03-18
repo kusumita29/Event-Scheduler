@@ -3,6 +3,7 @@ from db.enums import EventType, MethodType
 from datetime import datetime, time
 from typing import Optional
 
+
 class EventCreate(BaseModel):
     name: str
     event_type: EventType
@@ -12,8 +13,12 @@ class EventCreate(BaseModel):
     is_test: bool
 
     # Additional fields based on event type with default values
-    interval_minutes: Optional[int] = Field(30, ge=1, description="Default trigger interval set to 30 minutes")
-    fixed_time: Optional[time] = Field(time(9, 0), description="Daily trigger time set to 9 AM GMT")
+    interval_minutes: Optional[int] = Field(
+        30, ge=1, description="Default trigger interval set to 30 minutes"
+    )
+    fixed_time: Optional[time] = Field(
+        time(9, 0), description="Daily trigger time set to 9 AM GMT"
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -28,6 +33,7 @@ class EventCreate(BaseModel):
 
         return values
 
+
 # Response includes system-generated fields (id, created_at, updated_at)
 class EventResponse(EventCreate):
     id: int
@@ -36,4 +42,3 @@ class EventResponse(EventCreate):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
-

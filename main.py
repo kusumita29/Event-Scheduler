@@ -19,6 +19,7 @@ app.include_router(logs_router.router)
 def health_check() -> dict[str, str]:
     return {"status": "OK", "message": "Service is running!"}
 
+
 @app.get("/")
 async def root(db: AsyncSession = Depends(get_db)) -> dict[str, Any | None]:
     result = await db.execute(text("SELECT 'Hello, Welcome to Event Scheduler!'"))

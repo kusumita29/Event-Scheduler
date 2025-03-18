@@ -3,7 +3,8 @@ from typing import List
 
 from pydantic import BaseModel, ConfigDict
 
-from db.enums import LogStatus    
+from db.enums import LogStatus
+
 
 # Response includes system-generated fields (id, timestamp)
 class LogResponse(BaseModel):
@@ -15,6 +16,7 @@ class LogResponse(BaseModel):
     status: LogStatus
 
     model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
 
 class LogsFilterByEventResponse(BaseModel):
     event_id: int
