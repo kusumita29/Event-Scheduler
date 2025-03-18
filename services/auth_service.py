@@ -21,6 +21,23 @@ class AuthService:
     async def register_user(user: UserCreate, db: AsyncSession) -> UserResponse:
         """Creates a user and stores it in the database."""
         hashed_password = pwd_context.hash(user.password)
+
+        # Checks if email already exists
+        existing_email = await db.execute(select(User).where(User.email == user.email))
+        if existing_email.scalars().first():
+            raise HTTPException(
+                status_code=400, detail="A user with this email already exists."
+            )
+
+        # Checks if username is already taken
+        existing_username = await db.execute(
+            select(User).where(User.user_name == user.user_name)
+        )
+        if existing_username.scalars().first():
+            raise HTTPException(
+                status_code=400, detail="This username is already taken."
+            )
+
         new_user = User(
             user_name=user.user_name,
             name=user.name,

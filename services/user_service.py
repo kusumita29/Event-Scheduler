@@ -1,10 +1,12 @@
 from typing import List
+
 from fastapi import HTTPException
+from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from db.schemas.user_schema import UserCreate, UserResponse
+
 from db.models.user_model import User
-from passlib.context import CryptContext
+from db.schemas.user_schema import UserCreate, UserResponse
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -34,6 +36,28 @@ class UserService:
         user = await db.get(User, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+
+        # Check if email is already taken by another user
+        existing_email = await db.execute(
+            select(User).where(User.email == updated_user.email, User.id != user_id)
+        )
+
+        if existing_email.scalars().first():
+            raise HTTPException(
+                status_code=400, detail="A user with this email already exists."
+            )
+
+        # Checks if username is already taken
+        existing_username = await db.execute(
+            select(User).where(
+                User.user_name == updated_user.user_name, User.id != user_id
+            )
+        )
+
+        if existing_username.scalars().first():
+            raise HTTPException(
+                status_code=400, detail="This username is already taken."
+            )
 
         user.user_name = updated_user.user_name
         user.name = updated_user.name
