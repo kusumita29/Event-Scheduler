@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+import jwt_utils
 from db.database import get_db
 from db.enums import UserRole
 from db.models.user_model import User
@@ -12,7 +13,6 @@ from db.schemas.user_schema import UserCreate, UserLogin, UserResponse
 from jwt_utils import create_access_token, decode_access_token, verify_password
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthService:
@@ -20,7 +20,7 @@ class AuthService:
     @staticmethod
     async def register_user(user: UserCreate, db: AsyncSession) -> UserResponse:
         """Creates a user and stores it in the database."""
-        hashed_password = pwd_context.hash(user.password)
+        hashed_password = jwt_utils.get_password_hash(user.password)
 
         # Checks if email already exists
         existing_email = await db.execute(select(User).where(User.email == user.email))

@@ -2,13 +2,12 @@ from typing import List
 
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import jwt_utils
 from db.models.user_model import User
-from db.schemas.user_schema import UserCreate, UserResponse
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from db.schemas.user_schema import UserResponse, UserUpdate
 
 
 class UserService:
@@ -30,44 +29,66 @@ class UserService:
 
     @staticmethod
     async def update_user(
-        user_id: int, updated_user: UserCreate, db: AsyncSession
+        user_id: int, update_user_data: UserUpdate, db: AsyncSession
     ) -> UserResponse:
         """Update an existing user in the database."""
+
+        # Converts Pydantic model to a dictionary (excluding unset fields)
+        update_data = update_user_data.model_dump(exclude_unset=True)
+        print(update_data)
+
+        # Ensuring we have fields to update
+        if not update_data:
+            raise HTTPException(
+                status_code=400, detail="No fields provided for update."
+            )
+
+        # Checking if user is found (scenarios where the user deleted their profile)
         user = await db.get(User, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Check if email is already taken by another user
-        existing_email = await db.execute(
-            select(User).where(User.email == updated_user.email, User.id != user_id)
-        )
+        # Check for unique email
+        if "email" in update_data:
+            existing_email = await db.execute(
+                select(User).where(
+                    User.email == update_data["email"], User.id != user_id
+                )
+            )
+            if existing_email.scalars().first():
+                raise HTTPException(
+                    status_code=400, detail="A user with this email already exists."
+                )
 
-        if existing_email.scalars().first():
-            raise HTTPException(
-                status_code=400, detail="A user with this email already exists."
+        # Check for unique username
+        if "user_name" in update_data:
+            existing_username = await db.execute(
+                select(User).where(
+                    User.user_name == update_data["user_name"], User.id != user_id
+                )
+            )
+            if existing_username.scalars().first():
+                raise HTTPException(
+                    status_code=400, detail="This username is already taken."
+                )
+
+        # Hash password if it's being updated
+        if "password" in update_data:
+            update_data["password"] = jwt_utils.get_password_hash(
+                update_data["password"]
             )
 
-        # Checks if username is already taken
-        existing_username = await db.execute(
-            select(User).where(
-                User.user_name == updated_user.user_name, User.id != user_id
-            )
-        )
-
-        if existing_username.scalars().first():
-            raise HTTPException(
-                status_code=400, detail="This username is already taken."
-            )
-
-        user.user_name = updated_user.user_name
-        user.name = updated_user.name
-        user.email = updated_user.email
-        user.password = pwd_context.hash(updated_user.password)
+        # Perform bulk update using SQLAlchemy's `update()`
+        await db.execute(update(User).where(User.id == user_id).values(**update_data))
 
         await db.commit()
         await db.refresh(user)
 
-        return UserResponse.model_validate(user)
+        # Fetch the updated user
+        updated_user_data = await db.execute(select(User).where(User.id == user_id))
+        updated_user_data = updated_user_data.scalars().first()
+
+        return UserResponse.model_validate(updated_user_data)
 
     @staticmethod
     async def delete_user(user_id: int, db: AsyncSession) -> dict:

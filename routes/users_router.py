@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import get_db
 from db.models.user_model import User
-from db.schemas.user_schema import UserCreate, UserResponse
+from db.schemas.user_schema import UserResponse, UserUpdate
 from services.auth_service import AuthService
 from services.user_service import UserService
 
@@ -24,10 +24,10 @@ async def get_user(id: int, db: AsyncSession = Depends(get_db)) -> UserResponse:
     return await UserService.get_user(id, db)
 
 
-@router.put("/{id}", response_model=UserResponse)
+@router.patch("/{id}", response_model=UserResponse)
 async def update_user(
     id: int,
-    user: UserCreate,
+    user: UserUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(AuthService.get_current_user),
 ) -> UserResponse:
